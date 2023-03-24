@@ -47,11 +47,10 @@ target_sources(epoch PRIVATE
     ${EPOCH_SRC_DIR}/dummy.cpp
 )
 #########################
-## Subdirectories #######
+## Bins #################
 #########################
 
-add_subdirectory(bins)
-add_subdirectory(tests)
+add_subdirectory(bins/scalar_field)
 
 #####################
 ## Custom Targets ###
