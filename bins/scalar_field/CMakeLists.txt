@@ -10,6 +10,8 @@ deal_ii_setup_target(epoch_scalar_field)
 # Private
 target_include_directories(epoch_scalar_field PRIVATE ${SCALAR_FIELD_SRC_DIR})
 target_sources(epoch_scalar_field PRIVATE 
+    ${SCALAR_FIELD_SRC_DIR}/domain.hpp
+    ${SCALAR_FIELD_SRC_DIR}/field.hpp
     ${SCALAR_FIELD_SRC_DIR}/main.cpp
 )
 

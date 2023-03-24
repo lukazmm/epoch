@@ -3,14 +3,12 @@
 `epoch` is a collection of utilities, examples, and binaries used to adapt finite element methods to Numerical Relativity
 
 ## Project Structure
-- `build` - Untracked folder where build artifacts go
-- `packages` - Packages which must be compiled (rather than being provided by apt)
-    - `build` - Build directory for packages
 - `include` - Public header files
 - `src` - Private source files
 - `bins` - Executable projects
 - `tests` - Executable tests
 - `libs` - External libraries
+- `packages` - Packages which must be compiled
 - `scripts` - Scripts used by CMAKE and for analysis
 
 ## Prerequisites
@@ -28,4 +26,4 @@ The following pacakges should be installed and accessible on the path to success
 - C++ headers should end in `.hpp` and contain `#pragma once` as a first directive
 - C++ source files should end in `.cpp`
 - Python files end in `.py`
-- Add build folders/artifacts to `.gitignore`
+- All cmake build artifacts should be placed in a untracked `build` directory (or `packages/build` for packages).
