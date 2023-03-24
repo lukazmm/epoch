@@ -4,6 +4,8 @@
 
 ## Project Structure
 - `build` - Untracked folder where build artifacts go
+- `packages` - Packages which must be compiled (rather than being provided by apt)
+    - `build` - Build directory for packages
 - `include` - Public header files
 - `src` - Private source files
 - `bins` - Executable projects
@@ -12,7 +14,7 @@
 - `scripts` - Scripts used by CMAKE and for analysis
 
 ## Prerequisites
-The following pacakges should be downloaded and accessible on the path to successfully compile `epoch`.
+The following pacakges should be installed and accessible on the path to successfully compile `epoch`.
 
 - `git` 
 - `cmake`
