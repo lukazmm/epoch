@@ -61,7 +61,7 @@ public:
         double r2 = r * r;
         double sigma2 = m_sigma * m_sigma;
         double ex = -r2 / sigma2;
-        return -2.0 * r / sigma2* m_amplitude * std::exp(ex);
+        return -2.0 * r / sigma2 * m_amplitude * std::exp(ex);
     }
 private:
     double m_amplitude;
@@ -131,7 +131,7 @@ public:
     }
 
     const dealii::Vector<double>& psi() const {
-        return this->m_phi;
+        return this->m_psi;
     }
 
     dealii::Vector<double>& psi() {
@@ -139,11 +139,11 @@ public:
     }
 
     const dealii::Vector<double>& pi() const {
-        return this->m_phi;
+        return this->m_pi;
     }
 
     dealii::Vector<double>& pi() {
-        return this->m_phi;
+        return this->m_pi;
     }
 
     double mass() const {
@@ -151,7 +151,7 @@ public:
     }
 
     double potential(double phi) const {
-        return 0.5 * m_mass * phi * phi;
+        return 0.5 * m_mass * m_mass * phi * phi;
     }
 
     double kinetic(double psi, double pi) const {

@@ -86,6 +86,8 @@ public:
         for (unsigned int i = 0; i < MAX_ITERATIONS;i++) {
             m_delta = 0;
 
+            std::cout << "Gamma Iteration: " << i << std::endl;
+
             for (const auto& cell : domain.dofs().active_cell_iterators())
             {
                 cell_system = 0.;
@@ -99,6 +101,20 @@ public:
 
                 fe_values.get_function_values(m_gamma, gamma_values);
                 fe_values.get_function_gradients(m_gamma, gamma_gradients);
+
+                // const std::function<double(unsigned int)> sys_reg =
+                //     [&](unsigned int q_index) -> double {
+                //         const Point<dim>& point = fe_values.quadrature_point(q_index);
+                //         const double r = point.norm();
+
+                //         if (r < std::numeric_limits<double>::epsilon()) {
+                //             return 1.0;
+                //         }
+
+                //         return 0.0;
+                //     };
+
+                // cell_system_regular(fe_values, sys_reg, cell_system);
 
                 const std::function<double(unsigned int)> sys_rad =
                     [](unsigned int) -> double {
@@ -122,8 +138,8 @@ public:
 
                         const double gamma_val = gamma_values[q_index];
 
-                        const double k = field.kinetic(psi_val, pi_val);
                         const double v = field.potential(phi_val);
+                        const double k = field.kinetic(psi_val, pi_val);
 
                         const double a = r * r * v - 1.0;
                         const double b = r * r * k + 1.0;
@@ -151,9 +167,9 @@ public:
 
                         const double gamma_radial = scalar_product(gamma_grad, point);
 
-                        const double k = field.kinetic(psi_val, pi_val);
                         const double v = field.potential(phi_val);
-
+                        const double k = field.kinetic(psi_val, pi_val);
+                        
                         const double a = r * r * v - 1.0;
                         const double b = r * r * k + 1.0;
 
@@ -172,6 +188,8 @@ public:
 
             m_gamma += m_delta;
 
+            std::cout << "Residual is: " << m_delta.norm_sqr() << std::endl;
+
             if (m_delta.norm_sqr() < CONV_TOLERANCE) {
                 break;
             }
@@ -180,6 +198,8 @@ public:
                 std::cout << "Gamma Failed to Converge!" << std::endl;
             }
         }
+
+        std::cout << "Solving for Lapse" << std::endl;
 
         // Solve for Lapse
         for (const auto& cell : domain.dofs().active_cell_iterators())
@@ -192,7 +212,7 @@ public:
             fe_values.get_function_values(field.phi(), phi_values);
             fe_values.get_function_values(field.psi(), psi_values);
             fe_values.get_function_values(field.pi(), pi_values);
-            
+
             fe_values.get_function_values(m_gamma, gamma_values);
 
             const std::function<double(unsigned int)> sys_rad =
@@ -208,7 +228,7 @@ public:
                     const double r = point.norm();
 
                     if (r < std::numeric_limits<double>::epsilon()) {
-                        return 0.0;
+                        return 1.0;
                     }
 
                     const double phi_val = phi_values[q_index];
@@ -217,8 +237,8 @@ public:
 
                     const double gamma_val = gamma_values[q_index];
 
-                    const double k = field.kinetic(psi_val, pi_val);
                     const double v = field.potential(phi_val);
+                    const double k = field.kinetic(psi_val, pi_val);
 
                     const double a = r * r * v - 1.0;
                     const double c = r * r * k - 1.0;
@@ -234,7 +254,7 @@ public:
                     const double r = point.norm();
 
                     if (r < std::numeric_limits<double>::epsilon()) {
-                        return 1.0;
+                        return 0.0;
                     }
 
                     return 0.0;

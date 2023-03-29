@@ -16,7 +16,10 @@
 #include <deal.II/lac/precondition.h>
 #include <deal.II/lac/solver_bicgstab.h>
 #include <deal.II/lac/solver_gmres.h>
+#include <deal.II/lac/sparse_ilu.h>
 #include <deal.II/lac/sparse_matrix.h>
+#include <deal.II/lac/sparse_direct.h>
+#include <deal.II/lac/trilinos_precondition.h>
 
 #include <utility>
 #include <vector>
@@ -31,21 +34,22 @@ public:
         : m_tria(), 
             m_fe(2), 
             m_dof_handler(), 
-            m_quadrature(m_fe.degree + 1),
-            m_solver_control(1000, 10e-10),
-            m_solver(m_solver_control)
+            m_quadrature(m_fe.degree + 1)
     {
         using namespace dealii;
 
-        // GridGenerator::hyper_shell(m_tria, Point<dim>(), inner_radius, outer_radius, n, true);
+        GridGenerator::hyper_shell(m_tria, Point<dim>(), 0.001, radius, 10, true);
+        m_tria.refine_global(3);
 
-        GridGenerator::hyper_ball(m_tria, Point<dim>(), radius, true);
-        m_tria.refine_global(4);
+        // GridGenerator::hyper_ball(m_tria, Point<dim>(), radius, true);
+        // m_tria.refine_global(3);
 
-        // GridGenerator::subdivided_hyper_cube<dim>(m_tria, n, inner_radius, outer_radius, true);
+        // GridGenerator::subdivided_hyper_cube<dim>(m_tria, 1000, 0.01, radius, true);
 
         m_dof_handler.reinit(m_tria);
         m_dof_handler.distribute_dofs(m_fe);
+
+        DoFRenumbering::Cuthill_McKee(m_dof_handler);
 
         m_constraints.clear();
         dealii::DoFTools::make_hanging_node_constraints(m_dof_handler, m_constraints);
@@ -126,11 +130,26 @@ public:
         return m_pattern;
     }
 
+    const dealii::SparseMatrix<double>& system() const {
+        return m_system;
+    }
+
     void solve(dealii::Vector<double>& x) {
         x = 0.0;
-        m_preconditioner.initialize(m_system, 1.2);
-        m_solver.solve(m_system, x, m_rhs, m_preconditioner);
+        // m_preconditioner.initialize(m_system);
+        // m_solver.solve(m_system, x, m_rhs, m_preconditioner);
+        // m_constraints.distribute(x);
+
+        m_solver_direct.initialize(m_system);
+        m_solver_direct.vmult(x, m_rhs);
         m_constraints.distribute(x);
+
+        // dealii::SolverControl control(1000, m_rhs.l2_norm() * 10e-10);
+        // dealii::SolverGMRES<dealii::Vector<double>> solver(control);
+        // dealii::PreconditionJacobi<dealii::SparseMatrix<double>> preconditioner;
+
+        // preconditioner.initialize(m_system, 1.0);
+        // solver.solve(m_system, x, m_rhs, preconditioner);
     }
     
 private:
@@ -147,7 +166,12 @@ private:
     dealii::SparseMatrix<double> m_system;
     dealii::Vector<double> m_rhs;
 
-    dealii::SolverControl m_solver_control;
-    dealii::PreconditionSSOR<dealii::SparseMatrix<double>> m_preconditioner;
-    dealii::SolverBicgstab<dealii::Vector<double>> m_solver;
+    // dealii::SolverControl m_solver_control;
+    // // dealii::PreconditionSSOR<dealii::SparseMatrix<double>> m_preconditioner;
+    // dealii::SparseILU<double> m_preconditioner;
+    // // dealii::PreconditionJacobi<dealii::SparseMatrix<double>> m_preconditioner;
+    // dealii::SolverGMRES<dealii::Vector<double>> m_solver;
+    dealii::SparseDirectUMFPACK m_solver_direct;
+
+    
 };
