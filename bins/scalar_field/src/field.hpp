@@ -98,7 +98,7 @@ public:
         VectorTools::project<dim>(
             domain.dofs(),
             domain.constraints(),
-            QGauss<dim>(domain.fe().degree + 1),
+            domain.quadrature(),
             GaussianPhi<dim>(amplitude, sigma),
             field.m_phi
         );
@@ -106,7 +106,7 @@ public:
         VectorTools::project<dim>(
             domain.dofs(),
             domain.constraints(),
-            QGauss<dim>(domain.fe().degree + 1),
+            domain.quadrature(),
             GaussianPsi<dim>(amplitude, sigma),
             field.m_psi
         );
@@ -114,7 +114,7 @@ public:
         VectorTools::project<dim>(
             domain.dofs(),
             domain.constraints(),
-            QGauss<dim>(domain.fe().degree + 1),
+            domain.quadrature(),
             ZeroFunction<dim>(),
             field.m_pi
         );
@@ -148,6 +148,14 @@ public:
 
     double mass() const {
         return this->m_mass;
+    }
+
+    double potential(double phi) const {
+        return 0.5 * m_mass * phi * phi;
+    }
+
+    double kinetic(double psi, double pi) const {
+        return 0.5 * (psi * psi + pi * pi);
     }
 
 private:

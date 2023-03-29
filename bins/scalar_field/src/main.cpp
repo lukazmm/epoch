@@ -21,12 +21,12 @@ int main() {
 
     DataOut<2> data_out;
     data_out.attach_dof_handler(domain.dofs());
-    data_out.add_data_vector(field.phi(), "phi");
+    data_out.add_data_vector(field.psi(), "psi");
     // data_out.add_data_vector(field.psi(), "psi");
     // data_out.add_data_vector(field.pi(), "pi");
 
     data_out.build_patches();
 
-    std::ofstream output("field.eps");
+    std::ofstream output("psi.eps");
     data_out.write_eps(output);
 }

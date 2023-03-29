@@ -10,9 +10,11 @@ deal_ii_setup_target(epoch_scalar_field)
 # Private
 target_include_directories(epoch_scalar_field PRIVATE ${SCALAR_FIELD_SRC_DIR})
 target_sources(epoch_scalar_field PRIVATE 
+    ${SCALAR_FIELD_SRC_DIR}/common.hpp
     ${SCALAR_FIELD_SRC_DIR}/domain.hpp
     ${SCALAR_FIELD_SRC_DIR}/field.hpp
     ${SCALAR_FIELD_SRC_DIR}/main.cpp
+    ${SCALAR_FIELD_SRC_DIR}/metric.hpp
 )
 
 add_custom_target(run_scalar_field COMMAND epoch_scalar_field
