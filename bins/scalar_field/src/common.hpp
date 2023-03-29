@@ -24,7 +24,6 @@ void cell_system_radial(
         const double value = func(q_index);
         const double JxW = fe_values.JxW(q_index);
         const Point<dim>& position = fe_values.quadrature_point(q_index);
-        const dist = position.norm();
 
         for (const unsigned int i : fe_values.dof_indices()) {
             const Tensor<1, dim>& i_grad = fe_values.shape_grad(i, q_index);
@@ -33,7 +32,7 @@ void cell_system_radial(
             for (const unsigned int j : fe_values.dof_indices()) {
                 const double j_val = fe_values.shape_value(j, q_index);
 
-                cell_system += value * i_radial * j_val;
+                cell_system(i, j) += value * i_radial * j_val * JxW;
             }
         }
     }
@@ -58,7 +57,7 @@ void cell_system_value(
             for (const unsigned int j : fe_values.dof_indices()) {
                 const double j_val = fe_values.shape_value(j, q_index);
 
-                cell_system += value * i_val * j_val;
+                cell_system(i, j) += value * i_val * j_val * JxW;
             }
         }
     }

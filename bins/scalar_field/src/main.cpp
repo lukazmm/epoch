@@ -10,23 +10,36 @@
 
 #include "domain.hpp"
 #include "field.hpp"
+#include "metric.hpp"
 
 using namespace dealii;
 
 int main() {
-    Domain<2> domain(0.001, 5.0, 1000);
+    Domain<2> domain(5.0);
+
+    std::ofstream grid_file("grid.svg");
+    GridOut grid_out;
+    grid_out.write_svg(domain.tria(), grid_file);
+
+    // std::ofstream pattern_file("pattern.svg");
+    // domain.pattern().print_svg(pattern_file);
+
     Field<2> field = Field<2>::gaussian(domain, 0.0, 1.0, 1.0);
+
+
+    Metric<2> metric = Metric<2>::empty(domain);
+    metric.constraints(domain, field);
 
     std::cout << domain.n_dofs() << std::endl;
 
     DataOut<2> data_out;
     data_out.attach_dof_handler(domain.dofs());
-    data_out.add_data_vector(field.psi(), "psi");
+    data_out.add_data_vector(metric.gamma(), "gamma");
     // data_out.add_data_vector(field.psi(), "psi");
     // data_out.add_data_vector(field.pi(), "pi");
 
     data_out.build_patches();
 
-    std::ofstream output("psi.eps");
-    data_out.write_eps(output);
+    std::ofstream gamma_file("gamma.eps");
+    data_out.write_eps(gamma_file);
 }

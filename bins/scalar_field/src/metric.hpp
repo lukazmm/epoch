@@ -56,7 +56,7 @@ public:
                                         update_gradients | 
                                         update_JxW_values);
 
-        const unsigned int dofs_per_cell = mesh.fe().n_dofs_per_cell(); 
+        const unsigned int dofs_per_cell = domain.fe().n_dofs_per_cell(); 
 
         std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
 
@@ -93,15 +93,15 @@ public:
 
                 fe_values.reinit(cell);
 
-                fe_values->get_function_values(field.phi(), phi_values);
-                fe_values->get_function_values(field.psi(), psi_values);
-                fe_values->get_function_values(field.pi(), pi_values);
+                fe_values.get_function_values(field.phi(), phi_values);
+                fe_values.get_function_values(field.psi(), psi_values);
+                fe_values.get_function_values(field.pi(), pi_values);
 
-                fe_values->get_function_values(m_gamma, gamma_values);
-                fe_values->get_function_gradients(m_gamma, gamma_gradients);
+                fe_values.get_function_values(m_gamma, gamma_values);
+                fe_values.get_function_gradients(m_gamma, gamma_gradients);
 
                 const std::function<double(unsigned int)> sys_rad =
-                    [](unsigned int q_index) -> double {
+                    [](unsigned int) -> double {
                         return 2.0;
                     };
 
@@ -112,7 +112,7 @@ public:
                         const Point<dim>& point = fe_values.quadrature_point(q_index);
                         const double r = point.norm();
 
-                        if r < std::numeric_limits<double>::epsilon() {
+                        if (r < std::numeric_limits<double>::epsilon()) {
                             return 1.0;
                         }
 
@@ -138,7 +138,7 @@ public:
                         const Point<dim>& point = fe_values.quadrature_point(q_index);
                         const double r = point.norm();
 
-                        if r < std::numeric_limits<double>::epsilon() {
+                        if (r < std::numeric_limits<double>::epsilon()) {
                             return 0.0;
                         }
 
@@ -147,7 +147,7 @@ public:
                         const double pi_val = pi_values[q_index];
 
                         const double gamma_val = gamma_values[q_index];
-                        const double gamma_grad = gamma_gradients[q_index];
+                        const Tensor<1, dim, double>& gamma_grad = gamma_gradients[q_index];
 
                         const double gamma_radial = scalar_product(gamma_grad, point);
 
@@ -172,11 +172,11 @@ public:
 
             m_gamma += m_delta;
 
-            if m_delta.norm_sq() < CONV_TOLERANCE {
+            if (m_delta.norm_sqr() < CONV_TOLERANCE) {
                 break;
             }
 
-            if i == MAX_ITERATIONS - 1 {
+            if (i == MAX_ITERATIONS - 1) {
                 std::cout << "Gamma Failed to Converge!" << std::endl;
             }
         }
@@ -189,13 +189,14 @@ public:
 
             fe_values.reinit(cell);
 
-            fe_values->get_function_values(field.phi(), phi_values);
-            fe_values->get_function_values(field.psi(), psi_values);
-            fe_values->get_function_values(field.pi(), pi_values);
-            fe_values->get_function_values(m_gamma, gamma_values);
+            fe_values.get_function_values(field.phi(), phi_values);
+            fe_values.get_function_values(field.psi(), psi_values);
+            fe_values.get_function_values(field.pi(), pi_values);
+            
+            fe_values.get_function_values(m_gamma, gamma_values);
 
             const std::function<double(unsigned int)> sys_rad =
-                [](unsigned int q_index) -> double {
+                [](unsigned int) -> double {
                     return 2.0;
                 };
 
@@ -206,7 +207,7 @@ public:
                     const Point<dim>& point = fe_values.quadrature_point(q_index);
                     const double r = point.norm();
 
-                    if r < std::numeric_limits<double>::epsilon() {
+                    if (r < std::numeric_limits<double>::epsilon()) {
                         return 0.0;
                     }
 
@@ -232,7 +233,7 @@ public:
                     const Point<dim>& point = fe_values.quadrature_point(q_index);
                     const double r = point.norm();
 
-                    if r < std::numeric_limits<double>::epsilon() {
+                    if (r < std::numeric_limits<double>::epsilon()) {
                         return 1.0;
                     }
 
@@ -248,6 +249,22 @@ public:
         }
 
         domain.solve(m_lapse);
+    }
+
+    const dealii::Vector<double>& gamma() const {
+        return m_gamma;
+    }
+
+    dealii::Vector<double>& gamma() {
+        return m_gamma;
+    }
+
+    const dealii::Vector<double>& lapse() const {
+        return m_lapse;
+    }
+
+    dealii::Vector<double>& lapse() {
+        return m_lapse;
     }
     
 private:

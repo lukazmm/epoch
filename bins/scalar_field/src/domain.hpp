@@ -10,6 +10,7 @@
 #include <deal.II/fe/fe_q.h>
 
 #include <deal.II/lac/affine_constraints.h>
+#include <deal.II/lac/dynamic_sparsity_pattern.h>
 #include <deal.II/lac/full_matrix.h>
 #include <deal.II/lac/vector.h>
 #include <deal.II/lac/precondition.h>
@@ -26,19 +27,19 @@ class Domain {
 public:
     // Constructors
 
-    Domain(double inner_radius, double outer_radius, unsigned int n) 
+    Domain(double radius) 
         : m_tria(), 
             m_fe(2), 
             m_dof_handler(), 
             m_quadrature(m_fe.degree + 1),
-            m_solver_control(100, 10e-10),
+            m_solver_control(1000, 10e-10),
             m_solver(m_solver_control)
     {
         using namespace dealii;
 
         // GridGenerator::hyper_shell(m_tria, Point<dim>(), inner_radius, outer_radius, n, true);
 
-        GridGenerator::hyper_ball(m_tria, Point<dim>(), outer_radius, true);
+        GridGenerator::hyper_ball(m_tria, Point<dim>(), radius, true);
         m_tria.refine_global(4);
 
         // GridGenerator::subdivided_hyper_cube<dim>(m_tria, n, inner_radius, outer_radius, true);
@@ -49,6 +50,18 @@ public:
         m_constraints.clear();
         dealii::DoFTools::make_hanging_node_constraints(m_dof_handler, m_constraints);
         m_constraints.close();
+
+        DynamicSparsityPattern dsp(m_dof_handler.n_dofs());
+        DoFTools::make_sparsity_pattern(
+            m_dof_handler,
+            dsp,
+            m_constraints,
+            /*keep_constrained_dofs = */ false
+        );
+ 
+        m_pattern.copy_from(dsp);
+        m_system.reinit(m_pattern);
+        m_rhs.reinit(m_dof_handler.n_dofs());
     }
 
     const dealii::Triangulation<dim>& tria() const {
@@ -91,14 +104,14 @@ public:
         const dealii::FullMatrix<double>& cell_system, 
         const std::vector<dealii::types::global_dof_index>& local_dof_indices
     ) {
-        this->m_constraints.distribute_local_to_global(cell_system, local_dof_indices, this->m_system);
+        this->m_constraints.distribute_local_to_global(cell_system, local_dof_indices, m_system);
     }
 
     void cell_to_rhs(
         const dealii::Vector<double>& cell_rhs, 
         const std::vector<dealii::types::global_dof_index>& local_dof_indices
     ) {
-        this->m_constraints.distribute_local_to_global(cell_system, local_dof_indices, this->m_rhs);
+        this->m_constraints.distribute_local_to_global(cell_rhs, local_dof_indices, m_rhs);
     }
 
     const dealii::QGauss<dim>& quadrature() const {
@@ -107,6 +120,10 @@ public:
 
     dealii::QGauss<dim>& quadrature() {
         return this->m_quadrature;
+    }
+
+    const dealii::SparsityPattern& pattern() const {
+        return m_pattern;
     }
 
     void solve(dealii::Vector<double>& x) {
@@ -126,10 +143,11 @@ private:
 
     dealii::QGauss<dim> m_quadrature;
 
+    dealii::SparsityPattern m_pattern;
     dealii::SparseMatrix<double> m_system;
     dealii::Vector<double> m_rhs;
 
-    dealii::SolverControl<double> m_solver_control;
+    dealii::SolverControl m_solver_control;
     dealii::PreconditionSSOR<dealii::SparseMatrix<double>> m_preconditioner;
     dealii::SolverBicgstab<dealii::Vector<double>> m_solver;
 };
