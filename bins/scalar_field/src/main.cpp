@@ -37,8 +37,9 @@ int main() {
 
         data_out.build_patches();
 
-        std::ofstream gamma_file("gamma.eps");
-        data_out.write_eps(gamma_file);
+        std::ofstream gamma_file("gamma.svg");
+        data_out.set_flags(DataOutBase::SvgFlags (0, 0, 0, 1, true, true));
+        data_out.write_svg(gamma_file);
     }
 
      {
@@ -49,9 +50,11 @@ int main() {
         // data_out.add_data_vector(field.pi(), "pi");
     
         data_out.build_patches();
+        
     
-        std::ofstream lapse_file("lapse.eps");
-        data_out.write_eps(lapse_file);
+        std::ofstream lapse_file("lapse.svg");
+        data_out.set_flags(DataOutBase::SvgFlags (0, 0, 0, 1, true, true));
+        data_out.write_svg(lapse_file);
     }
 
     
@@ -59,10 +62,7 @@ int main() {
 
 
 // int main() {
-//     Domain<1> domain(5.0);
-
-//     // std::ofstream pattern_file("pattern.svg");
-//     // domain.pattern().print_svg(pattern_file);
+//     Domain<1> domain(10.0);
 
 //     Field<1> field = Field<1>::gaussian(domain, 0.0, 1.0, 1.0);
 //     Metric<1> metric = Metric<1>::empty(domain);
@@ -70,14 +70,75 @@ int main() {
 
 //     std::cout << domain.n_dofs() << std::endl;
 
-//     DataOut<1> data_out;
-//     data_out.attach_dof_handler(domain.dofs());
-//     data_out.add_data_vector(metric.gamma(), "gamma");
-//     // data_out.add_data_vector(field.psi(), "psi");
-//     // data_out.add_data_vector(field.pi(), "pi");
+//     {
+//         DataOut<1> data_out;
+//         data_out.attach_dof_handler(domain.dofs());
+//         data_out.add_data_vector(metric.gamma(), "gamma");
+//         // data_out.add_data_vector(metric.lapse(), "lapse");
+//         // data_out.add_data_vector(field.psi(), "psi");
+//         // data_out.add_data_vector(field.pi(), "pi");
 
-//     data_out.build_patches();
+//         data_out.build_patches();
 
-//     std::ofstream gamma_file("gamma.gnuplot");
-//     data_out.write_gnuplot(gamma_file);
+//         std::ofstream file("gamma.gnuplot");
+//         data_out.write_gnuplot(file);
+//     }
+
+//     {
+//         DataOut<1> data_out;
+//         data_out.attach_dof_handler(domain.dofs());
+//         data_out.add_data_vector(metric.lapse(), "lapse");
+//         // data_out.add_data_vector(metric.lapse(), "lapse");
+//         // data_out.add_data_vector(field.psi(), "psi");
+//         // data_out.add_data_vector(field.pi(), "pi");
+
+//         data_out.build_patches();
+
+//         std::ofstream file("lapse.gnuplot");
+//         data_out.write_gnuplot(file);
+//     }
+
+//     {
+//         DataOut<1> data_out;
+//         data_out.attach_dof_handler(domain.dofs());
+//         data_out.add_data_vector(field.phi(), "phi");
+//         // data_out.add_data_vector(metric.lapse(), "lapse");
+//         // data_out.add_data_vector(field.psi(), "psi");
+//         // data_out.add_data_vector(field.pi(), "pi");
+
+//         data_out.build_patches();
+
+//         std::ofstream file("phi.gnuplot");
+//         data_out.write_gnuplot(file);
+//     }
+
+//     {
+//         DataOut<1> data_out;
+//         data_out.attach_dof_handler(domain.dofs());
+//         data_out.add_data_vector(field.psi(), "psi");
+//         // data_out.add_data_vector(metric.lapse(), "lapse");
+//         // data_out.add_data_vector(field.psi(), "psi");
+//         // data_out.add_data_vector(field.pi(), "pi");
+
+//         data_out.build_patches();
+
+//         std::ofstream file("psi.gnuplot");
+//         data_out.write_gnuplot(file);
+//     }
+
+//     {
+//         DataOut<1> data_out;
+//         data_out.attach_dof_handler(domain.dofs());
+//         data_out.add_data_vector(field.pi(), "pi");
+//         // data_out.add_data_vector(metric.lapse(), "lapse");
+//         // data_out.add_data_vector(field.psi(), "psi");
+//         // data_out.add_data_vector(field.pi(), "pi");
+
+//         data_out.build_patches();
+
+//         std::ofstream file("pi.gnuplot");
+//         data_out.write_gnuplot(file);
+//     }
+
+    
 // }

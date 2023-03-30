@@ -38,13 +38,13 @@ public:
     {
         using namespace dealii;
 
-        GridGenerator::hyper_shell(m_tria, Point<dim>(), 0.001, radius, 10, true);
-        m_tria.refine_global(3);
-
-        // GridGenerator::hyper_ball(m_tria, Point<dim>(), radius, true);
+        // GridGenerator::hyper_shell(m_tria, Point<dim>(), 0.001, radius, 10, true);
         // m_tria.refine_global(3);
 
-        // GridGenerator::subdivided_hyper_cube<dim>(m_tria, 1000, 0.01, radius, true);
+        GridGenerator::hyper_ball(m_tria, Point<dim>(), radius, true);
+        m_tria.refine_global(3);
+
+        // GridGenerator::subdivided_hyper_cube<dim>(m_tria, 1000, 0.00, radius, true);
 
         m_dof_handler.reinit(m_tria);
         m_dof_handler.distribute_dofs(m_fe);
@@ -102,6 +102,11 @@ public:
 
     dealii::AffineConstraints<double>& constraints() {
         return this->m_constraints;
+    }
+
+    void reset_system() {
+        m_system = 0.;
+        m_rhs = 0.;
     }
 
     void cell_to_system(

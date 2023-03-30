@@ -35,6 +35,7 @@ public:
         metric.m_gamma.reinit(domain.n_dofs());
         metric.m_lapse.reinit(domain.n_dofs());
         metric.m_delta.reinit(domain.n_dofs());
+        metric.m_factor.reinit(domain.n_dofs());
 
         return metric;
     }
@@ -46,7 +47,7 @@ public:
         using namespace dealii;
 
         // Max number of iterations to converge to gamma (which is nonlinear)
-        const unsigned int MAX_ITERATIONS = 10;
+        const unsigned int MAX_ITERATIONS = 20;
         const double CONV_TOLERANCE = 10e-10;
 
         // FE objects
@@ -68,8 +69,9 @@ public:
         std::vector<double> psi_values(dofs_per_cell);
         std::vector<double> pi_values(dofs_per_cell);
 
-        std::vector<double> gamma_values(dofs_per_cell);
-        std::vector<Tensor<1, dim, double>> gamma_gradients(dofs_per_cell);
+        std::vector<double> values_1(dofs_per_cell);
+        std::vector<double> values_2(dofs_per_cell);
+        std::vector<Tensor<1, dim, double>> gradients_1(dofs_per_cell);
 
         // Solve for Gamma
 
@@ -84,14 +86,14 @@ public:
 
         // Refine
         for (unsigned int i = 0; i < MAX_ITERATIONS;i++) {
+            domain.reset_system();
+
             m_delta = 0;
 
             std::cout << "Gamma Iteration: " << i << std::endl;
 
             for (const auto& cell : domain.dofs().active_cell_iterators())
             {
-                cell_system = 0.;
-                cell_rhs = 0.;
 
                 fe_values.reinit(cell);
 
@@ -99,84 +101,34 @@ public:
                 fe_values.get_function_values(field.psi(), psi_values);
                 fe_values.get_function_values(field.pi(), pi_values);
 
-                fe_values.get_function_values(m_gamma, gamma_values);
-                fe_values.get_function_gradients(m_gamma, gamma_gradients);
+                fe_values.get_function_values(m_gamma, values_1);
+                fe_values.get_function_gradients(m_gamma, gradients_1);
 
-                // const std::function<double(unsigned int)> sys_reg =
-                //     [&](unsigned int q_index) -> double {
-                //         const Point<dim>& point = fe_values.quadrature_point(q_index);
-                //         const double r = point.norm();
-
-                //         if (r < std::numeric_limits<double>::epsilon()) {
-                //             return 1.0;
-                //         }
-
-                //         return 0.0;
-                //     };
-
-                // cell_system_regular(fe_values, sys_reg, cell_system);
-
-                const std::function<double(unsigned int)> sys_rad =
-                    [](unsigned int) -> double {
-                        return 2.0;
-                    };
-
-                cell_system_radial(fe_values, sys_rad, cell_system);
-
-                const std::function<double(unsigned int)> sys_val =
-                    [&](unsigned int q_index) -> double {
+                const std::function<void(unsigned int, double&, double&, double&)> sys = 
+                    [&](unsigned int q_index, double& grad, double& val, double& rhs) {
                         const Point<dim>& point = fe_values.quadrature_point(q_index);
                         const double r = point.norm();
-
-                        if (r < std::numeric_limits<double>::epsilon()) {
-                            return 1.0;
-                        }
 
                         const double phi_val = phi_values[q_index];
                         const double psi_val = psi_values[q_index];
                         const double pi_val = pi_values[q_index];
 
-                        const double gamma_val = gamma_values[q_index];
-
-                        const double v = field.potential(phi_val);
-                        const double k = field.kinetic(psi_val, pi_val);
-
-                        const double a = r * r * v - 1.0;
-                        const double b = r * r * k + 1.0;
-
-                        return -(b + 3.0 * gamma_val * gamma_val * a);
-                    };
-                
-                cell_system_value(fe_values, sys_val, cell_system);
-
-                const std::function<double(unsigned int)> rhs_val =
-                    [&](unsigned int q_index) -> double {
-                        const Point<dim>& point = fe_values.quadrature_point(q_index);
-                        const double r = point.norm();
-
-                        if (r < std::numeric_limits<double>::epsilon()) {
-                            return 0.0;
-                        }
-
-                        const double phi_val = phi_values[q_index];
-                        const double psi_val = psi_values[q_index];
-                        const double pi_val = pi_values[q_index];
-
-                        const double gamma_val = gamma_values[q_index];
-                        const Tensor<1, dim, double>& gamma_grad = gamma_gradients[q_index];
-
+                        const double gamma_val = values_1[q_index];
+                        const Tensor<1, dim, double>& gamma_grad = gradients_1[q_index];
                         const double gamma_radial = scalar_product(gamma_grad, point);
 
-                        const double v = field.potential(phi_val);
+                        const double p = field.potential(phi_val);
                         const double k = field.kinetic(psi_val, pi_val);
-                        
-                        const double a = r * r * v - 1.0;
-                        const double b = r * r * k + 1.0;
 
-                        return a * gamma_val * gamma_val * gamma_val + b * gamma_val - 2.0 * gamma_radial;
+                        const double f = 3.0 * gamma_val * gamma_val * (1.0 - r*r*p) - (1.0 + r*r*k);
+                        const double g = gamma_val * gamma_val * gamma_val * (r*r*p - 1.0) + gamma_val * (r*r*k + 1.0) - 2.0 * gamma_radial;
+
+                        grad = 2.0;
+                        val = f;
+                        rhs = g;
                     };
 
-                cell_rhs_value(fe_values, rhs_val, cell_rhs);
+                cell_radial_and_value(fe_values, sys, cell_system, cell_rhs);
 
                 cell->get_dof_indices(local_dof_indices);
 
@@ -202,40 +154,29 @@ public:
         std::cout << "Solving for Lapse" << std::endl;
 
         // Solve for Lapse
+
+        domain.reset_system();
+
         for (const auto& cell : domain.dofs().active_cell_iterators())
         {
-            cell_system = 0.;
-            cell_rhs = 0.;
-
             fe_values.reinit(cell);
 
             fe_values.get_function_values(field.phi(), phi_values);
             fe_values.get_function_values(field.psi(), psi_values);
             fe_values.get_function_values(field.pi(), pi_values);
 
-            fe_values.get_function_values(m_gamma, gamma_values);
+            fe_values.get_function_values(m_gamma, values_1);
 
-            const std::function<double(unsigned int)> sys_rad =
-                [](unsigned int) -> double {
-                    return 2.0;
-                };
-
-            cell_system_radial(fe_values, sys_rad, cell_system);
-
-            const std::function<double(unsigned int)> sys_val =
+            const std::function<double(unsigned int)> rad =
                 [&](unsigned int q_index) -> double {
                     const Point<dim>& point = fe_values.quadrature_point(q_index);
                     const double r = point.norm();
-
-                    if (r < std::numeric_limits<double>::epsilon()) {
-                        return 1.0;
-                    }
 
                     const double phi_val = phi_values[q_index];
                     const double psi_val = psi_values[q_index];
                     const double pi_val = pi_values[q_index];
 
-                    const double gamma_val = gamma_values[q_index];
+                    const double gamma_val = values_1[q_index];
 
                     const double v = field.potential(phi_val);
                     const double k = field.kinetic(psi_val, pi_val);
@@ -243,24 +184,35 @@ public:
                     const double a = r * r * v - 1.0;
                     const double c = r * r * k - 1.0;
 
-                    return (gamma_val * gamma_val * a - c);
+                    return (c - gamma_val * gamma_val * a) / (2.0);
                 };
-            
-            cell_system_value(fe_values, sys_val, cell_system);
 
-            const std::function<double(unsigned int)> rhs_val =
+            cell_radial(fe_values, rad, cell_system, cell_rhs);
+
+            cell->get_dof_indices(local_dof_indices);
+
+            domain.cell_to_system(cell_system, local_dof_indices);
+            domain.cell_to_rhs(cell_rhs, local_dof_indices);
+        }
+
+        domain.solve(m_lapse);
+
+        domain.reset_system();
+
+        for (const auto& cell : domain.dofs().active_cell_iterators())
+        {
+            fe_values.reinit(cell);
+
+            fe_values.get_function_values(m_lapse, values_1);
+
+            const std::function<double(unsigned int)> val =
                 [&](unsigned int q_index) -> double {
-                    const Point<dim>& point = fe_values.quadrature_point(q_index);
-                    const double r = point.norm();
+                    const double lapse_val = values_1[q_index];
 
-                    if (r < std::numeric_limits<double>::epsilon()) {
-                        return 0.0;
-                    }
-
-                    return 0.0;
+                    return std::exp(lapse_val);
                 };
 
-            cell_rhs_value(fe_values, rhs_val, cell_rhs);
+            cell_value(fe_values, val, cell_system, cell_rhs);
 
             cell->get_dof_indices(local_dof_indices);
 
@@ -291,4 +243,5 @@ private:
     dealii::Vector<double> m_gamma;
     dealii::Vector<double> m_lapse;
     dealii::Vector<double> m_delta;
+    dealii::Vector<double> m_factor;
 };
